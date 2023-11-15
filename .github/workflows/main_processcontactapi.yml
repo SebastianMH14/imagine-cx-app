@@ -23,10 +23,10 @@ jobs:
 
       - name: Set up environment variables
         run: |
-          echo "DBNAME=imaginecx-contacts" >> $GITHUB_ENV
-          echo "DBUSER=uduynthpaz" >> $GITHUB_ENV
+          echo "DBNAME=contacts" >> $GITHUB_ENV
+          echo "DBUSER=cabra" >> $GITHUB_ENV
           echo "DBPASS=A8I122VIA46HJYPV$" >> $GITHUB_ENV
-          echo "DBHOST=imaginecx-contacts-db.mysql.database.azure.com" >> $GITHUB_ENV
+          echo "DBHOST=imagine-cx.mysql.database.azure.com" >> $GITHUB_ENV
           echo "CXUSERNAME=ICXCandidate" >> $GITHUB_ENV
           echo "CXPASSWORD=Welcome2021" >> $GITHUB_ENV
 
@@ -62,10 +62,10 @@ jobs:
 
       - name: Set up environment variables for deployment
         run: |
-          echo "DBNAME=imaginecx-contacts" >> $GITHUB_ENV
-          echo "DBUSER=uduynthpaz" >> $GITHUB_ENV
+          echo "DBNAME=contacts" >> $GITHUB_ENV
+          echo "DBUSER=cabra" >> $GITHUB_ENV
           echo "DBPASS=A8I122VIA46HJYPV$" >> $GITHUB_ENV
-          echo "DBHOST=imaginecx-contacts-db.mysql.database.azure.com" >> $GITHUB_ENV
+          echo "DBHOST=imagine-cx.mysql.database.azure.com" >> $GITHUB_ENV
           echo "CXUSERNAME=ICXCandidate" >> $GITHUB_ENV
           echo "CXPASSWORD=Welcome2021" >> $GITHUB_ENV
 

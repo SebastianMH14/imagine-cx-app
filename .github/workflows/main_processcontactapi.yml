@@ -19,7 +19,16 @@ jobs:
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
-          node-version: '20.x'
+          node-version: "20.x"
+
+      - name: Set up environment variables
+        run: |
+          echo "DBNAME=imaginecx-contacts" >> $GITHUB_ENV
+          echo "DBUSER=uduynthpaz" >> $GITHUB_ENV
+          echo "DBPASS=A8I122VIA46HJYPV$" >> $GITHUB_ENV
+          echo "DBHOST=imaginecx-contacts-db.mysql.database.azure.com" >> $GITHUB_ENV
+          echo "CXUSERNAME=ICXCandidate" >> $GITHUB_ENV
+          echo "CXPASSWORD=Welcome2021" >> $GITHUB_ENV
 
       - name: npm install, build, and test
         run: |
@@ -39,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     environment:
-      name: 'Production'
+      name: "Production"
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
 
     steps:
@@ -51,11 +60,20 @@ jobs:
       - name: Unzip artifact for deployment
         run: unzip release.zip
 
-      - name: 'Deploy to Azure Web App'
+      - name: Set up environment variables for deployment
+        run: |
+          echo "DBNAME=imaginecx-contacts" >> $GITHUB_ENV
+          echo "DBUSER=uduynthpaz" >> $GITHUB_ENV
+          echo "DBPASS=A8I122VIA46HJYPV$" >> $GITHUB_ENV
+          echo "DBHOST=imaginecx-contacts-db.mysql.database.azure.com" >> $GITHUB_ENV
+          echo "CXUSERNAME=ICXCandidate" >> $GITHUB_ENV
+          echo "CXPASSWORD=Welcome2021" >> $GITHUB_ENV
+
+      - name: "Deploy to Azure Web App"
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v2
         with:
-          app-name: 'processcontactapi'
-          slot-name: 'Production'
+          app-name: "processcontactapi"
+          slot-name: "Production"
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_A928DE17DF4D4D10A93F6B436B659EE0 }}
           package: .

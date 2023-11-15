@@ -2,7 +2,7 @@
   "name": "imagine-cx-app",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon src/app.js",
@@ -16,8 +16,6 @@
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "mysql2": "^3.6.3",
-    "sequelize": "^6.34.0",
-    "tedious": "^16.6.0",
-    "vue": "^3.3.8"
+    "sequelize": "^6.34.0"
   }
 }

@@ -69,6 +69,9 @@ jobs:
           echo "CXUSERNAME=ICXCandidate" >> $GITHUB_ENV
           echo "CXPASSWORD=Welcome2021" >> $GITHUB_ENV
 
+      - name: Start Node.js Application
+        run: npm start
+
       - name: "Deploy to Azure Web App"
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v2

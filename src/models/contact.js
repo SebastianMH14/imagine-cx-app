@@ -1,5 +1,5 @@
 const { Sequelize, DataTypes } = require('sequelize');
-const sequelize = new Sequelize('contacts', 'imagine-cx', '123456789', {
+const sequelize = new Sequelize('contacts', 'imaginecx', '123456789', {
   host: 'localhost',
   dialect: 'mysql',
 });
@@ -9,15 +9,17 @@ const Contact = sequelize.define('Contact', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  phone: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
   url: {
     type: DataTypes.STRING,
     allowNull: true,
-  },
-});
-
-const ContactData = sequelize.define('ContactData', {
-  data: {
-    type: DataTypes.JSON,
   },
 });
 
@@ -36,4 +38,4 @@ sequelize.sync()
     console.error('Error al sincronizar tablas:', error);
   });
 
-module.exports = {Contact, ContactData};
+module.exports = Contact;

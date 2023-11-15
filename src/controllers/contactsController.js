@@ -1,58 +1,79 @@
 // controllers/contactsController.js
-const { Contact, ContactData } = require('../models/contact');
-const axios = require('axios');
+const Contact = require('../models/contact');
+const { fetch, post, patch, deleteContact } = require('../utils')
 
 
-const username = 'ICXCandidate';
-const password = 'Welcome2021';
-
-const base64Credentials = Buffer.from(`${username}:${password}`, 'utf-8').toString('base64');
-
-const config = {
-  headers: {
-    'Authorization': `Basic ${base64Credentials}`,
-    'Content-Type': 'application/json',
-  },
-};
 
 async function processContactData(contacts) {
-  for (let contact of contacts) {
-    let response = await axios.get(contact.url, config)
-    contact.city = response.data.address.city
-    let responseEmail = await axios.get(`https://imaginecx--tst2.custhelp.com/services/rest/connect/v1.3/contacts/${contact.id}/emails/0`, config)
-    let responsePhone = await axios.get(`https://imaginecx--tst2.custhelp.com/services/rest/connect/v1.3/contacts/${contact.id}/phones/1`, config)
-    contact.email = responseEmail.data.address
-    contact.phone = responsePhone.data.number
-    console.log(contact)
-  }
-  return contacts
+  const promises = contacts.map(async (contact) => {
+    try {
+      let [response, responseEmail, responsePhone] = await Promise.all([
+        fetch(contact.url),
+        fetch(`https://imaginecx--tst2.custhelp.com/services/rest/connect/v1.3/contacts/${contact.id}/emails/0`),
+        fetch(`https://imaginecx--tst2.custhelp.com/services/rest/connect/v1.3/contacts/${contact.id}/phones/1`),
+      ]);
+
+      contact.city = response.address.city;
+      contact.email = responseEmail.address ? responseEmail.address : null;
+      contact.phone = responsePhone && responsePhone.number ? responsePhone.number : null;
+
+    } catch (error) {
+      console.error('Error processing contact:', error.message);
+    }
+  });
+
+  await Promise.all(promises);
+
+  return contacts;
 }
+
 
 exports.getContacts = async (req, res) => {
   try {
 
-    const limit = req.query.limit ? parseInt(req.query.limit) : 0;
+    const limit = req.query.limit ? parseInt(req.query.limit) : 6;
 
-    const response = await axios.get(
-      `https://imaginecx--tst2.custhelp.com/services/rest/connect/v1.3/contacts?limit=${limit}`, config);
+    const nextPage = req.body.next
 
-    const data = response.data;
+    let url = nextPage ? nextPage : `https://imaginecx--tst2.custhelp.com/services/rest/connect/v1.3/contacts?limit=${limit}`
 
+    const { city, name, email, phone } = req.query;
+
+    if (city) {
+      url += `&q=address.city LIKE '${city}'`;
+    }
+
+    if (name) {
+      url += `&q=lookupName LIKE '${name}'`;
+    }
+
+    if (email) {
+      url += `&q=emails.address LIKE '${email}'`;
+    }
+
+    if (phone) {
+      url += `&q=phones.number LIKE '${phone}'`;
+    }
+
+
+    const data = await fetch(url);
+
+    const next = data.links[2].href
 
     const contacts = data.items.map(contact => ({
       id: contact.id,
       name: contact.lookupName,
       url: contact.links[0].href,
-      createdAt: contact.createdTime
+      createdAt: contact.createdTime,
+      updateAt: contact.updatedTime
     }));
 
-    filledContacts = processContactData(contacts)
+    const filledContacts = await processContactData(contacts)
 
-    console.log(filledContacts)
 
-    result = await Contact.bulkCreate(contacts, { ignoreDuplicates: true });
+    // result = await Contact.bulkCreate(filledContacts, { ignoreDuplicates: true });
 
-    res.json(result);
+    res.json({ data: filledContacts, next });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -61,23 +82,28 @@ exports.getContacts = async (req, res) => {
 exports.getContactById = async (req, res) => {
   try {
     const contactId = req.params.id;
+    let message = 'Success';
 
+    const response = await fetch(
+      `https://imaginecx--tst2.custhelp.com/services/rest/connect/v1.3/contacts/${contactId}`);
 
-    const response = await axios.get(
-      `https://imaginecx--tst2.custhelp.com/services/rest/connect/v1.3/contacts/${contactId}`, config);
+    let filledContact;
 
-    const contactData = response.data;
+    if (response === undefined) {
+      message = 'There are no contacts with this id'
+    } else {
+      const result = {
+        id: response.id,
+        name: response.lookupName,
+        url: response.links[0].href,
+        createdAt: response.createdTime,
+        updatedAt: response.updatedTime
+      };
 
-    delete contactData.id
+      filledContact = await processContactData([result])
+    }
 
-    const [contact, created] = await ContactData.findOrCreate({
-      where: { id: contactId },
-      defaults: {
-        data: contactData,
-      },
-    });
-
-    res.json({ contact });
+    res.json({ 'data': filledContact, 'message': message });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -86,8 +112,50 @@ exports.getContactById = async (req, res) => {
 
 exports.createContact = async (req, res) => {
   try {
-    const contact = await Contact.create(req.body);
-    res.json(contact);
+
+    const { name, address, emails, phones } = req.body;
+
+    if (!name || !address || !emails || !phones) {
+      return res.status(400).json({ error: 'Se requieren datos esenciales para crear un contacto.' });
+    }
+
+    const body = {
+      "name": {
+        "first": name.first,
+        "last": name.last
+      },
+      "address": {
+        "city": address.city
+      },
+      "emails": {
+        "address": emails.address,
+        "addressType": {
+          "id": 0
+        }
+      },
+      "phones": {
+        "number": phones.number,
+        "phoneType": {
+          "id": 1
+        }
+      }
+    }
+
+    const response = await post('https://imaginecx--tst2.custhelp.com/services/rest/connect/v1.3/contacts', body)
+
+
+
+    const result = {
+      id: response.id,
+      name: response.lookupName,
+      url: response.links[0].href,
+      createdAt: response.createdTime,
+      updatedAt: response.updatedTime
+    };
+
+    const filledContact = await processContactData([result])
+
+    res.json({ 'data': filledContact, 'message': "Success" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -95,14 +163,17 @@ exports.createContact = async (req, res) => {
 
 exports.deleteContact = async (req, res) => {
   try {
-    const contact = await Contact.findByPk(req.params.id);
-    if (!contact) {
-      res.status(404).json({ error: 'Contact not found' });
-      return;
+
+    const contactId = req.params.id;
+    let message = 'Contact deleted successfully'
+
+    const response = await deleteContact(contactId)
+
+    if (response === undefined) {
+      message = 'There are no contacts with this id'
     }
 
-    await contact.destroy();
-    res.json({ message: 'Contact deleted successfully' });
+    res.json({ message: message });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -110,14 +181,43 @@ exports.deleteContact = async (req, res) => {
 
 exports.updateContact = async (req, res) => {
   try {
-    const contact = await Contact.findByPk(req.params.id);
-    if (!contact) {
-      res.status(404).json({ error: 'Contact not found' });
-      return;
+
+    const contactId = req.params.id;
+    const { name, address, emails, phones } = req.body;
+    message = "Success"
+
+    if (!name || !address || !emails || !phones) {
+      return res.status(400).json({ error: 'Se requieren datos esenciales para crear un contacto.' });
     }
 
-    await contact.update(req.body);
-    res.json(contact);
+    const body = {
+      "name": {
+        "first": name.first,
+        "last": name.last
+      },
+      "address": {
+        "city": address.city
+      },
+      "emails": {
+        "address": emails.address,
+        "addressType": {
+          "id": 0
+        }
+      },
+      "phones": {
+        "number": phones.number,
+        "phoneType": {
+          "id": 1
+        }
+      }
+    }
+    const response = await patch(`https://imaginecx--tst2.custhelp.com/services/rest/connect/v1.3/contacts/${contactId}`, body);
+
+    if (response === undefined) {
+      message = "There are no contacts with this id"
+    }
+
+    res.json({ "message": message });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -1,4 +1,8 @@
 const { Sequelize, DataTypes } = require("sequelize");
+const path = require("path");
+const fs = require("fs");
+
+const certificatePath = path.resolve(__dirname, "DigiCertGlobalRootCA.crt.pem");
 const sequelize = new Sequelize(
   process.env.DBNAME,
   process.env.DBUSER,
@@ -6,6 +10,11 @@ const sequelize = new Sequelize(
   {
     host: process.env.DBHOST,
     dialect: "mysql",
+    dialectOptions: {
+      ssl: {
+        ca: fs.readFileSync(certificatePath),
+      },
+    },
   }
 );
 
